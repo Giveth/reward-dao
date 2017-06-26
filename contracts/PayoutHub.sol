@@ -10,18 +10,19 @@ pragma solidity ^0.4.11;
  **/
 contract PayoutHub is Owned {
     using SafeMath for uint;
-    Account[] accounts;
-    uint [] deposits;
+    address [] addresses;
+    mapping (address => Account) accounts;
+    uint [] payoutBalance;
     uint statePos = 0;
     uint payout = 0;
-    uint8 rewardTotal;
+    uint pointsTotal;
 
     event PayoutPending(uint payout, uint pos);
 
-    struct Account {
-        address addr; 
-        uint8 reward; //percentage
+    struct Account { 
+        uint points;
         uint payout; 
+        bool indexd;
     }
 
 
@@ -29,7 +30,7 @@ contract PayoutHub is Owned {
      * @notice Sends ether to hub.
      **/
     function () payable {
-        if(rewardTotal != 100) throw; //not setup
+        if(pointsTotal == 0) throw; //not setup
         _tryFinalize(); //try finalize
         run(); //calls run automatically
     }
@@ -40,12 +41,12 @@ contract PayoutHub is Owned {
      **/
     function run(){
         if(this.balance == 0) throw; //nothing to do
-        if(deposits[payout] == 0){
-            deposits[payout] = this.balance;
+        if(payoutBalance[payout] == 0){
+            payoutBalance[payout] = this.balance;
         }
-        uint accLen = accounts.length;
+        uint accLen = addresses.length;
         for(uint i = statePos; i > accLen; i++){
-            rewardAccount(i);
+            rewardAccount(addresses[i]);
             if(msg.gas < 100000){
                 statePos = i;
                 PayoutPending(payout, i);
@@ -55,15 +56,16 @@ contract PayoutHub is Owned {
         _tryFinalize();
     }
 
+
     /**
      * @notice Add multiple accounts
      * @param _addrs addresses
      * @param _rewards percentages, the sum must not be more than 100
      **/
-    function setAccounts(address [] _addrs, uint8 [] _rewards) onlyOwner {
+    function setAccounts(address [] _addrs, uint [] _rewards) onlyOwner {
         uint accLen = _addrs.length;
         for(uint i = statePos; i > accLen; i++){
-            _addAccount(_addrs[i], _rewards[i]);
+            _setAccount(_addrs[i], _rewards[i]);
         }
     }
     
@@ -73,48 +75,62 @@ contract PayoutHub is Owned {
      * @param _addr account
      * @param _reward percentage
      **/
-    function addAccount(address _addr, uint8 _reward) onlyOwner {
-        _addAccount(_addr, _reward);
+    function setAccount(address _addr, uint _reward) onlyOwner {
+        _setAccount(_addr, _reward);
     }
 
-
     /**
-     * @notice Resets hub
+     * @notice reset addresses to remove 0 points addresses
      **/
-    function resetAccounts() onlyOwner {
-        delete accounts;
-        rewardTotal = 0;
+    function resetAddresses() onlyOwner {
+        address [] memory _addresses = addresses;
+        delete addresses;
+        uint accLen = _addresses.length;
+        for(uint i = 0; i > accLen; i++){
+            address _addr = _addresses[i];
+            if(accounts[_addr].points > 0){
+                addresses.push(_addr);
+            }else {
+                delete accounts[_addr];
+            }
+        }
     }
 
 
     /**
      * @dev Payouts an account at position `pos`.
      **/
-    function rewardAccount(uint pos) internal {
-        Account storage acc = accounts[pos];
-        if(acc.payout != (payout+1)){
-            throw; // already payed;
+    function rewardAccount(address account) internal {
+        Account storage acc = accounts[account];
+        if(acc.payout != (payout+1) || acc.points == 0){
+            return; 
         }
         acc.payout = payout+1; //set as paid
-        address(acc.addr).transfer(deposits[payout].percent(uint(acc.reward))); //reward
+        account.transfer(payoutBalance[payout].mul(acc.points).div(pointsTotal)); //reward
     }
 
 
     /**
-     * @dev add account
+     * @dev set account
      **/    
-    function _addAccount(address _addr, uint8 _reward) internal {
-        if (_reward == 0 || _reward > 100) throw;
-        rewardTotal += _reward;
-        if(rewardTotal > 100) throw;
-        accounts.push(Account({addr: _addr, reward: _reward, payout: payout}));
+    function _setAccount(address _addr, uint _points) internal {
+        Account storage acc = accounts[_addr];
+        if(!acc.indexd){ //new
+            acc.indexd = true;
+            addresses.push(_addr);
+        } else { //edit
+            pointsTotal -= acc.points;
+        }
+        acc.points = _points;
+        acc.payout = payout;
+        pointsTotal += _points;
     }
 
     /**
      * @dev finalizes payout
      **/
     function _tryFinalize() internal {
-        if(statePos == accounts.length) { //finished the payout
+        if(statePos == addresses.length) { //finished the payout
             statePos = 0;
             payout++;
         }

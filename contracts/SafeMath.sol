@@ -27,10 +27,6 @@ library SafeMath {
     assert(c >= a);
     return c;
   }
-  
-  function percent(uint256 a, uint256 b) internal returns (uint256) { 
-    return div(mul(a,b),100);
-  }
 
   function max64(uint64 a, uint64 b) internal constant returns (uint64) {
     return a >= b ? a : b;
