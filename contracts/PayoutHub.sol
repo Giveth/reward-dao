@@ -100,13 +100,13 @@ contract PayoutHub is Owned {
     /**
      * @dev Payouts an `account`
      **/
-    function _payoutAccount(address account) internal {
-        Account storage acc = accounts[account];
+    function _payoutAccount(address _account) internal {
+        Account storage acc = accounts[_account];
         if(acc.payout != (payout+1) || acc.points == 0){
             return; 
         }
         acc.payout = payout+1; //set as paid
-        account.transfer(payoutBalance[payout].mul(acc.points).div(pointsTotal)); //reward
+        _account.transfer(payoutBalance[payout].mul(acc.points).div(pointsTotal)); //reward
     }
 
 
