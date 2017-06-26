@@ -60,12 +60,12 @@ contract PayoutHub is Owned {
     /**
      * @notice Add multiple accounts
      * @param _addrs addresses
-     * @param _rewards percentages, the sum must not be more than 100
+     * @param _points the more an addr have, the more share will receive 
      **/
-    function setAccounts(address [] _addrs, uint [] _rewards) onlyOwner {
+    function setAccounts(address [] _addrs, uint [] _points) onlyOwner {
         uint accLen = _addrs.length;
         for(uint i = statePos; i > accLen; i++){
-            _setAccount(_addrs[i], _rewards[i]);
+            _setAccount(_addrs[i], _points[i]);
         }
     }
     
@@ -73,10 +73,10 @@ contract PayoutHub is Owned {
     /**
      * @notice Add a single account
      * @param _addr account
-     * @param _reward percentage
+     * @param _points the more an addr have, the more share will receive
      **/
-    function setAccount(address _addr, uint _reward) onlyOwner {
-        _setAccount(_addr, _reward);
+    function setAccount(address _addr, uint _points) onlyOwner {
+        _setAccount(_addr, _points);
     }
 
     /**
