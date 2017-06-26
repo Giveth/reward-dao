@@ -16,7 +16,7 @@ contract PayoutHub is Owned {
     uint payout = 0;
     uint8 rewardTotal;
 
-    event PayoutEnd(uint payout);
+    event PayoutPending(uint payout, uint pos);
 
     struct Account {
         address addr; 
@@ -30,18 +30,16 @@ contract PayoutHub is Owned {
      **/
     function () payable {
         if(rewardTotal != 100) throw; //not setup
-        if(statePos == accounts.length) { //finished the payoyt
-            payout++;
-        }
+        _tryFinalize(); //try finalize
         run(); //calls run automatically
     }
 
 
     /**
-     * @notice Do the payout.
+     * @notice Run the payout.
      **/
     function run(){
-        if(this.balance == 0) throw;
+        if(this.balance == 0) throw; //nothing to do
         if(deposits[payout] == 0){
             deposits[payout] = this.balance;
         }
@@ -50,10 +48,11 @@ contract PayoutHub is Owned {
             rewardAccount(i);
             if(msg.gas < 100000){
                 statePos = i;
+                PayoutPending(payout, i);
                 return;
             }
         }
-        statePos = i;
+        _tryFinalize();
     }
 
     /**
@@ -102,7 +101,7 @@ contract PayoutHub is Owned {
 
 
     /**
-     * 
+     * @dev add account
      **/    
     function _addAccount(address _addr, uint8 _reward) internal {
         if (_reward == 0 || _reward > 100) throw;
@@ -111,5 +110,14 @@ contract PayoutHub is Owned {
         accounts.push(Account({addr: _addr, reward: _reward, payout: payout}));
     }
 
+    /**
+     * @dev finalizes payout
+     **/
+    function _tryFinalize() internal {
+        if(statePos == accounts.length) { //finished the payout
+            statePos = 0;
+            payout++;
+        }
+    }
 
 }
