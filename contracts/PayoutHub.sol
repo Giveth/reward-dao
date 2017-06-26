@@ -46,7 +46,7 @@ contract PayoutHub is Owned {
         }
         uint accLen = addresses.length;
         for(uint i = statePos; i > accLen; i++){
-            rewardAccount(addresses[i]);
+            _payoutAccount(addresses[i]);
             if(msg.gas < 100000){
                 statePos = i;
                 PayoutPending(payout, i);
@@ -98,9 +98,9 @@ contract PayoutHub is Owned {
 
 
     /**
-     * @dev Payouts an account at position `pos`.
+     * @dev Payouts an `account`
      **/
-    function rewardAccount(address account) internal {
+    function _payoutAccount(address account) internal {
         Account storage acc = accounts[account];
         if(acc.payout != (payout+1) || acc.points == 0){
             return; 
