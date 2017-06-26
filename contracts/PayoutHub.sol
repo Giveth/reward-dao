@@ -30,16 +30,17 @@ contract PayoutHub is Owned {
      **/
     function () payable {
         if(rewardTotal != 100) throw; //not setup
-        if(statePos != accounts.length) return; //
-        payout++;
-        reward();
+        if(statePos == accounts.length) { //finished the payoyt
+            payout++;
+        }
+        run(); //calls run automatically
     }
 
 
     /**
      * @notice Do the payout.
      **/
-    function reward(){
+    function run(){
         if(this.balance == 0) throw;
         if(deposits[payout] == 0){
             deposits[payout] = this.balance;
